@@ -2,14 +2,16 @@ import { useState } from "react";
 import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function UploadBox() {
-  const [file, setFile] = useState(null);
+  const [files, setfiles] = useState([]);
   const [status, setStatus] = useState("");
 
   const uploadFile = async () => {
-    if (!file) return;
+    if (files.length === 0) return;
 
     const formData = new FormData();
-    formData.append("file", file); 
+    files.forEach((file) => {
+     formData.append("files", file);
+  });
 
     setStatus("Uploading...");
 
@@ -53,7 +55,8 @@ export default function UploadBox() {
         <div className="relative">
           <input
             type="file"
-            onChange={(e) => setFile(e.target.files[0])}
+            multiple
+             onChange={(e) => setFiles(Array.from(e.target.files))}
             className="hidden"
             id="file-upload"
             accept=".pdf,.doc,.docx,.txt, .jpg, .png, .md"

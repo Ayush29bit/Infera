@@ -1,7 +1,7 @@
 # Smart-Compliance-Assistant-
 
-📄 Smart Compliance Assistant — RAG Document Intelligence System
-🚀 Overview
+ Smart Compliance Assistant — RAG Document Intelligence System
+ Overview
 
 The Smart Compliance Assistant is an end-to-end AI-powered Document Intelligence system that can:
 
@@ -17,20 +17,20 @@ Ground all answers strictly in the uploaded document
 
 This project demonstrates real-world applied AI: combining OCR, vector databases, embeddings, and LLMs inside a modular backend architecture.
 
-🧠 Features
-✅ OCR Text Extraction
+ Features
+ Text Extraction
 
-Uses EasyOCR / PDF utilities to convert both image-based and text-based PDFs into clean text.
+Uses Docling for transforming complex, unstructured documents (PDFs, Word, PPTs, images)
 
-✅ Chunking & Embedding
+ Chunking & Embedding
 
 Breaks extracted text into readable chunks and embeds them using SentenceTransformer (all-MiniLM-L6-v2).
 
-✅ Vector Storage (Qdrant)
+ Vector Storage (Qdrant)
 
 Stores embeddings + text in Qdrant for fast semantic search.
 
-✅ Retrieval-Augmented Generation (RAG)
+ Retrieval-Augmented Generation (RAG)
 
 For each user query:
 
@@ -42,7 +42,7 @@ Send them with the query to OpenAI GPT-4o-mini
 
 Model responds only based on retrieved context
 
-✅ Modular FastAPI Backend
+ Modular FastAPI Backend
 
 API routes:
 

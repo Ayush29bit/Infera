@@ -3,6 +3,9 @@ from pydantic import BaseModel
 import os
 from app.services.docling_service import extract_text
 from app.services.embedder import embed_document, store_vectors
+from typing import List
+
+
 
 router = APIRouter()
 
@@ -14,18 +17,20 @@ class UploadResponse(BaseModel):
     status: str
 
 @router.post("/upload", response_model=UploadResponse)
-async def upload_file(file: UploadFile = File(...)):
+
+async def upload_files(files: List[UploadFile] = File(...)):
+
     try:
-        print(f"Received file: {file.filename}")
-        print(f"Content type: {file.content_type}")
+        print(f"Received files: {files.filename}")
+        print(f"Content type: {files.content_type}")
         
-        if not file:
+        if not files:
             raise HTTPException(status_code=400, detail="No file uploaded")
 
         # 1. Save file to disk
-        file_path = os.path.join(UPLOAD_DIR, file.filename)
+        file_path = os.path.join(UPLOAD_DIR, files.filename)
         with open(file_path, "wb") as f:
-            f.write(await file.read())
+            f.write(await files.read())
         
         print(f"File saved to: {file_path}")
 
@@ -44,7 +49,7 @@ async def upload_file(file: UploadFile = File(...)):
         store_vectors(vectors)
         print("Vectors stored successfully")
 
-        return {"filename": file.filename, "status": "processed"}
+        return {"filename": files.filename, "status": "processed"}
     
     except Exception as e:
         print(f"Error in upload_file: {str(e)}")
