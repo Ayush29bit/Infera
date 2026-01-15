@@ -10,7 +10,6 @@ from app.services.embedder import (
     ensure_collection,
 )
 
-
 import os
 from dotenv import load_dotenv
 
@@ -18,9 +17,7 @@ load_dotenv()
 
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-
 ensure_collection()
-
 
 def retrieve_chunks(
     query: str,
@@ -31,7 +28,6 @@ def retrieve_chunks(
     Retrieve relevant chunks from Qdrant.
     Supports optional filtering by document_id(s).
     """
-
     query_vector = embed_query(query)
 
     query_filter = None
@@ -67,7 +63,6 @@ def generate_answer(query: str, chunks: List[dict]) -> str:
     """
     Generate a grounded answer using retrieved chunks.
     """
-
     if not chunks:
         return "I could not find relevant information in the provided documents."
 
