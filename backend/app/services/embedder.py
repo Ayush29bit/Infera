@@ -66,6 +66,13 @@ def embed_document(text: str, document_id: str, filename: str):
 
     return chunks
 
+def embed_query(query: str) -> list[float]:
+    """
+    Embed a user query into the same vector space as documents.
+    """
+    return embedder.encode(query).tolist()
+
+
 def store_vectors(vectors):
     qdrant.upsert(
         collection_name=COLLECTION_NAME,

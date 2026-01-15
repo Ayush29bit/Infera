@@ -1,84 +1,119 @@
-import os
-from qdrant_client import QdrantClient
-from qdrant_client.models import VectorParams, Distance, PointStruct
+from typing import List, Optional
+
+from qdrant_client.http import models
 from groq import Groq
-from dotenv import load_dotenv
 
-from app.services.embedder import embed_document, embed_query
-
-load_dotenv()
-
-COLLECTION_NAME = "documents"
-
-
-qdrant = QdrantClient(
-    url=os.getenv("QDRANT_URL"),
-    api_key=os.getenv("QDRANT_API_KEY")
+from app.services.embedder import (
+    qdrant,
+    COLLECTION_NAME,
+    embed_query,
+    ensure_collection,
 )
 
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-def ensure_collection():
-    collections = [c.name for c in qdrant.get_collections().collections]
-    if COLLECTION_NAME not in collections:
-        qdrant.create_collection(
-            collection_name=COLLECTION_NAME,
-            vectors_config=VectorParams(
-                size=384,
-                distance=Distance.COSINE
-            )
-        )
 
 ensure_collection()
 
-def store_vectors(vectors):
-    """Store vectors in Qdrant"""
-    qdrant.upsert(
-        collection_name=COLLECTION_NAME,
-        points=[
-            PointStruct(
-                id=i,
-                vector=v["embedding"],
-                payload={"text": v["text"]}
-            )
-            for i, v in enumerate(vectors)
-        ]
-    )
 
-def retrieve_chunks(query: str, limit: int = 5):
+def retrieve_chunks(
+    query: str,
+    limit: int = 5,
+    document_ids: Optional[List[str]] = None,
+):
+    """
+    Retrieve relevant chunks from Qdrant.
+    Supports optional filtering by document_id(s).
+    """
+
     query_vector = embed_query(query)
 
-    results = qdrant.query_points(
+    query_filter = None
+    if document_ids:
+        query_filter = models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="document_id",
+                    match=models.MatchAny(any=document_ids),
+                )
+            ]
+        )
+
+    results = qdrant.search(
         collection_name=COLLECTION_NAME,
-        query=query_vector,
-        limit=limit
+        query_vector=query_vector,
+        limit=limit,
+        query_filter=query_filter,
     )
 
-    return [point.payload["text"] for point in results.points]
+    return [
+        {
+            "text": point.payload["text"],
+            "filename": point.payload["filename"],
+            "document_id": point.payload["document_id"],
+            "chunk_index": point.payload["chunk_index"],
+        }
+        for point in results
+    ]
 
-def generate_answer(query: str, chunks: list[str]):
-    context = "\n\n".join(chunks)
 
- 
+def generate_answer(query: str, chunks: List[dict]) -> str:
+    """
+    Generate a grounded answer using retrieved chunks.
+    """
+
+    if not chunks:
+        return "I could not find relevant information in the provided documents."
+
+    context = "\n\n".join(
+        f"[Source: {chunk['filename']} | Chunk {chunk['chunk_index']}]\n{chunk['text']}"
+        for chunk in chunks
+    )
+
     response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",  # Free and powerful
+        model="llama-3.3-70b-versatile",
         messages=[
             {
                 "role": "system",
-                "content": "Answer strictly using the provided context."
+                "content": (
+                    "You are a document-based assistant. "
+                    "Answer strictly using the provided context. "
+                    "If the answer is not contained in the context, say so."
+                ),
             },
             {
                 "role": "user",
-                "content": f"Context:\n{context}\n\nQuestion:\n{query}"
-            }
+                "content": f"Context:\n{context}\n\nQuestion:\n{query}",
+            },
         ],
-        temperature=0.5,
-        max_tokens=1024
+        temperature=0.2,
+        max_tokens=1024,
     )
 
-    return response.choices[0].message.content
+    return response.choices[0].message.content.strip()
 
-def run_rag(query: str):
-    chunks = retrieve_chunks(query)
+
+def run_rag(
+    query: str,
+    document_ids: Optional[List[str]] = None,
+    limit: int = 5,
+) -> str:
+    """
+    Full RAG pipeline:
+    query → retrieve → generate answer
+    """
+
+    chunks = retrieve_chunks(
+        query=query,
+        limit=limit,
+        document_ids=document_ids,
+    )
+
     return generate_answer(query, chunks)
+
