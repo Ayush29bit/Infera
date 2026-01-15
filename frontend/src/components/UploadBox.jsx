@@ -16,7 +16,7 @@ export default function UploadBox() {
     setStatus("Uploading...");
 
     try {
-      console.log("Uploading file:", file.name);
+      console.log("Uploading file:", files.name);
       
       const res = await fetch("http://127.0.0.1:8000/api/upload", {
         method: "POST",
@@ -67,7 +67,7 @@ export default function UploadBox() {
           >
             <FileText className="w-12 h-12 text-slate-400 group-hover:text-blue-500 transition-colors mb-3" />
             <p className="text-slate-600 group-hover:text-slate-700 transition-colors font-medium">
-              {file ? file.name : 'Click to select a file'}
+              {files ? files.name : 'Click to select a file'}
             </p>
             <p className="text-sm text-slate-500 mt-2">
               PDF, Word, PowerPoint, Images, HTML, Markdown supported
@@ -76,13 +76,13 @@ export default function UploadBox() {
         </div>
 
         {/* File Selected Status */}
-        {file && (
+        {files && (
           <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
             <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-slate-800 truncate font-medium">{file.name}</p>
+              <p className="text-slate-800 truncate font-medium">{files.name}</p>
               <p className="text-sm text-slate-500">
-                {(file.size / 1024).toFixed(2)} KB
+                {(files.size / 1024).toFixed(2)} KB
               </p>
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function UploadBox() {
         {/* Upload Button */}
         <button
           onClick={uploadFile}
-          disabled={!file || status === "Uploading..."}
+          disabled={!files || status === "Uploading..."}
           className="w-full py-4 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
         >
           {status === "Uploading..." ? (
