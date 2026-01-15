@@ -1,29 +1,43 @@
 from fastapi import APIRouter, HTTPException
-from app.services.rag_pipeline import run_rag
+from pydantic import BaseModel
+from typing import List, Optional
 import logging
+
+from app.services.rag_pipeline import run_rag
 
 router = APIRouter()
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@router.post("/query")
-async def query_rag(payload: dict):
+
+class QueryRequest(BaseModel):
+    query: str
+    document_ids: Optional[List[str]] = None
+
+
+class QueryResponse(BaseModel):
+    answer: str
+
+
+@router.post("/query", response_model=QueryResponse)
+async def query_rag(payload: QueryRequest):
     try:
-        query = payload["query"]
-        logger.info(f"Received query: {query}")
-        
-        # Run the RAG pipeline
-        answer = run_rag(query)
-        logger.info(f"Generated answer: {answer[:100]}...")  # Log first 100 chars
-        
+        logger.info(f"Received query: {payload.query}")
+        logger.info(f"Document scope: {payload.document_ids}")
+
+        answer = run_rag(
+            query=payload.query,
+            document_ids=payload.document_ids,
+        )
+
+        logger.info(f"Generated answer (preview): {answer[:100]}...")
         return {"answer": answer}
-    
-    except KeyError:
-        logger.error("Query field missing in payload")
-        raise HTTPException(status_code=400, detail="Query field is required")
-    
+
     except Exception as e:
         logger.error(f"Error in query_rag: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error processing query",
+        )
+
