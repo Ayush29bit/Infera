@@ -14,6 +14,19 @@ embedder = SentenceTransformer('all-MiniLM-L6-v2')
 
 COLLECTION_NAME = "documents"
 
+
+def ensure_collection():
+    collections = qdrant.get_collections().collections
+    if COLLECTION_NAME not in [c.name for c in collections]:
+        qdrant.create_collection(
+            collection_name=COLLECTION_NAME,
+            vectors_config=models.VectorParams(
+                size=384,
+                distance=models.Distance.COSINE
+            )
+        )
+
+
 def embed_document(text: str, document_id: str, filename: str):
     CHUNK_SIZE = 300
     words = text.split()
