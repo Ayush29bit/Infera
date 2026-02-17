@@ -16,7 +16,7 @@ export default function UploadBox() {
     setStatus("Uploading...");
 
     try {
-      console.log("Uploading file:", files.name);
+      console.log("Uploading files:", files.map(f => f.name));
       
       const res = await fetch("http://127.0.0.1:8000/api/upload", {
         method: "POST",
@@ -30,6 +30,11 @@ export default function UploadBox() {
         const data = await res.json();
         console.log("Upload response:", data);
         setStatus("Document uploaded successfully");
+        // Clear files after successful upload
+        setTimeout(() => {
+          setfiles([]);
+          setStatus("");
+        }, 2000);
       } else {
         const errorData = await res.text();
         console.error("Upload error:", errorData);
@@ -56,7 +61,7 @@ export default function UploadBox() {
           <input
             type="file"
             multiple
-             onChange={(e) => setFiles(Array.from(e.target.files))}
+             onChange={(e) => setfiles(Array.from(e.target.files))}
             className="hidden"
             id="file-upload"
             accept=".pdf,.doc,.docx,.txt, .jpg, .png, .md"
@@ -67,7 +72,7 @@ export default function UploadBox() {
           >
             <FileText className="w-12 h-12 text-slate-400 group-hover:text-blue-500 transition-colors mb-3" />
             <p className="text-slate-600 group-hover:text-slate-700 transition-colors font-medium">
-              {files ? files.name : 'Click to select a file'}
+              {files.length > 0 ? `${files.length} file(s) selected` : 'Click to select files'}
             </p>
             <p className="text-sm text-slate-500 mt-2">
               PDF, Word, PowerPoint, Images, HTML, Markdown supported
@@ -76,15 +81,19 @@ export default function UploadBox() {
         </div>
 
         {/* File Selected Status */}
-        {files && (
-          <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
-            <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-slate-800 truncate font-medium">{files.name}</p>
-              <p className="text-sm text-slate-500">
-                {(files.size / 1024).toFixed(2)} KB
-              </p>
-            </div>
+        {files && files.length > 0 && (
+          <div className="space-y-2">
+            {files.map((file, index) => (
+              <div key={index} className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-slate-800 truncate font-medium">{file.name}</p>
+                  <p className="text-sm text-slate-500">
+                    {(file.size / 1024).toFixed(2)} KB
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -119,7 +128,7 @@ export default function UploadBox() {
         {/* Upload Button */}
         <button
           onClick={uploadFile}
-          disabled={!files || status === "Uploading..."}
+          disabled={files.length === 0 || status === "Uploading..."}
           className="w-full py-4 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
         >
           {status === "Uploading..." ? (

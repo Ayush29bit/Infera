@@ -1,8 +1,6 @@
 from typing import List, Optional
-
 from qdrant_client.http import models
 from groq import Groq
-
 from app.services.embedder import (
     qdrant,
     COLLECTION_NAME,
@@ -24,10 +22,6 @@ def retrieve_chunks(
     limit: int = 5,
     document_ids: Optional[List[str]] = None,
 ):
-    """
-    Retrieve relevant chunks from Qdrant.
-    Supports optional filtering by document_id(s).
-    """
     query_vector = embed_query(query)
 
     query_filter = None
@@ -41,9 +35,9 @@ def retrieve_chunks(
             ]
         )
 
-    results = qdrant.search(
+    results = qdrant.query_points(
         collection_name=COLLECTION_NAME,
-        query_vector=query_vector,
+        query=query_vector,
         limit=limit,
         query_filter=query_filter,
     )
@@ -55,8 +49,9 @@ def retrieve_chunks(
             "document_id": point.payload["document_id"],
             "chunk_index": point.payload["chunk_index"],
         }
-        for point in results
+        for point in results.points
     ]
+
 
 
 def generate_answer(query: str, chunks: List[dict]) -> str:
