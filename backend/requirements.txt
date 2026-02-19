@@ -22,3 +22,6 @@ pymupdf
 
 ## For document parsing we have used docling
 docling
+
+sqlalchemy
+
