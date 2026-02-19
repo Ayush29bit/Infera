@@ -6,12 +6,9 @@ import os
 
 load_dotenv()
 
-qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
-qdrant_api_key = os.getenv("QDRANT_API_KEY", None)
-
-qdrant = QdrantClient(
-    url=qdrant_url,
-    api_key=qdrant_api_key
+qdrant=QdrantClient(
+    url=os.getenv("QDRANT_URL"),
+    api_key=os.getenv("QDRANT_API_KEY")
 )
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
 
