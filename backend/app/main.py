@@ -1,12 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import health, upload
-from app.routers import rag
+from app.routers import health, upload, rag, auth
 
 
 app = FastAPI(title="Smart Compliance Assistant - Backend")
 
-# CORS Middleware
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,10 +14,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Routers
 app.include_router(health.router, prefix="/api")
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 app.include_router(rag.router, prefix="/api", tags=["rag"])
+app.include_router(auth.router, prefix="/api", tags=["auth"])
 
 @app.get("/")
 def read_root():
