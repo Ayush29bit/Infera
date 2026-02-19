@@ -10,7 +10,15 @@ qdrant=QdrantClient(
     url=os.getenv("QDRANT_URL"),
     api_key=os.getenv("QDRANT_API_KEY")
 )
-embedder = SentenceTransformer('all-MiniLM-L6-v2')
+
+_embedder = None
+
+def get_embedder():
+    global _embedder
+    if _embedder is None:
+        _embedder = SentenceTransformer("all-MiniLM-L6-v2")
+    return _embedder
+
 
 COLLECTION_NAME = "documents"
 
@@ -26,7 +34,6 @@ def ensure_collection():
             )
         )
 
-
 def embed_document(text: str, document_id: str, filename: str):
     CHUNK_SIZE = 300
     words = text.split()
@@ -40,7 +47,7 @@ def embed_document(text: str, document_id: str, filename: str):
             chunk_text = " ".join(current)
             chunks.append({
                 "id": str(uuid.uuid4()),
-                "embedding": embedder.encode(chunk_text).tolist(),
+                "embedding": get_embedder().encode(chunk_text).tolist(),
                 "payload": {
                     "document_id": document_id,
                     "filename": filename,
@@ -55,7 +62,7 @@ def embed_document(text: str, document_id: str, filename: str):
         chunk_text = " ".join(current)
         chunks.append({
             "id": str(uuid.uuid4()),
-            "embedding": embedder.encode(chunk_text).tolist(),
+            "embedding": get_embedder().encode(chunk_text).tolist(),
             "payload": {
                 "document_id": document_id,
                 "filename": filename,
@@ -70,7 +77,7 @@ def embed_query(query: str) -> list[float]:
     """
     Embed a user query into the same vector space as documents.
     """
-    return embedder.encode(query).tolist()
+    return get_embedder().encode(query).tolist()
 
 
 def store_vectors(vectors):
