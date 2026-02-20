@@ -86,3 +86,32 @@
 - Error logging and debugging
 
 ---
+
+## Technology Stack
+
+### **Backend**
+- **Framework**: FastAPI (Python 3.12+)
+- **Database**: SQLAlchemy with SQLite/PostgreSQL
+- **Vector Database**: Qdrant (cloud-hosted)
+- **Authentication**: JWT with python-jose
+- **Document Processing**: Docling (IBM)
+- **Embeddings**: Sentence Transformers (all-MiniLM-L6-v2)
+- **LLM**: Groq (Llama 3.3 70B) / OpenAI GPT-4
+- **API Documentation**: Swagger/OpenAPI
+
+### **Frontend**
+- **Framework**: React 18 with Vite
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **HTTP Client**: Fetch API
+- **State Management**: React Hooks (useState, useEffect)
+- **Routing**: React Router (planned)
+
+### **Infrastructure**
+- **Containerization**: Docker + Docker Compose
+- **CI/CD**: GitHub Actions (planned)
+- **Cloud**: AWS / Railway / Vercel
+- **Monitoring**: Sentry (planned)
+- **Logging**: Structured logging
+
+---
