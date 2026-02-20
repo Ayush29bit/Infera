@@ -1,55 +1,88 @@
-# Smart-Compliance-Assistant-
+# Smart Compliance Assistant
 
- Smart Compliance Assistant — RAG Document Intelligence System
- Overview
+<div align="center">
 
-The Smart Compliance Assistant is an end-to-end AI-powered Document Intelligence system that can:
+![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)
+![React](https://img.shields.io/badge/React-18.0+-61DAFB.svg)
 
-Read & extract text from PDFs, scanned images, and documents using OCR
+**A production-ready SaaS platform for intelligent document analysis powered by AI**
 
-Convert documents into meaningful vector embeddings
+[Features](#-features) • [Demo](#-demo) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
-Store embeddings inside Qdrant (vector database)
+</div>
 
-Answer user questions through a custom RAG pipeline
+---
 
-Ground all answers strictly in the uploaded document
+## Overview
 
-This project demonstrates real-world applied AI: combining OCR, vector databases, embeddings, and LLMs inside a modular backend architecture.
+**Smart Compliance Assistant** is an enterprise-grade AI-powered document intelligence platform that enables organizations to extract insights from their compliance documents instantly. Built with cutting-edge RAG (Retrieval-Augmented Generation) technology, it provides accurate, context-aware answers to queries across multiple document formats.
 
- Features
- Text Extraction
+### Why Smart Compliance Assistant?
 
-Uses Docling for transforming complex, unstructured documents (PDFs, Word, PPTs, images)
+- 🎯 **Accuracy**: Leverages advanced RAG architecture with hybrid search for precise answers
+- ⚡ **Speed**: Process and query documents in seconds, not hours
+- 🔒 **Secure**: Enterprise-grade security with JWT authentication and encryption
+- 📊 **Scalable**: Microservices architecture ready for enterprise deployment
+- 🎨 **Beautiful UI**: Modern, intuitive interface built with React and Tailwind CSS
+- 💼 **SaaS-Ready**: Multi-tenancy, subscription management, and usage tracking built-in
 
- Chunking & Embedding
+---
 
-Breaks extracted text into readable chunks and embeds them using SentenceTransformer (all-MiniLM-L6-v2).
+## Features
 
- Vector Storage (Qdrant)
+### 🔐 **Authentication & User Management**
+- JWT-based secure authentication
+- User registration and login
+- Password hashing with bcrypt
+- Role-based access control (RBAC)
+- User profile management
+- Session management
 
-Stores embeddings + text in Qdrant for fast semantic search.
+### 📄 **Multi-Format Document Processing**
+- **Supported Formats**: PDF, DOCX, PPTX, TXT, Images (JPG, PNG), HTML, Markdown
+- **Powered by Docling**: IBM's state-of-the-art document understanding library
+- **OCR Capability**: Extract text from scanned documents and images
+- **Structure Preservation**: Maintains tables, headings, and formatting
+- **Batch Processing**: Upload multiple documents simultaneously
 
- Retrieval-Augmented Generation (RAG)
+### 🧠 **Advanced RAG System**
+- **Semantic Search**: Vector embeddings for contextual understanding
+- **Hybrid Search**: Combines vector search with keyword matching
+- **Intelligent Chunking**: Context-aware document segmentation
+- **Source Citations**: Traceable answers with document references
+- **Multi-Document QA**: Query across all uploaded documents
+- **Conversation History**: Maintains context across queries
 
-For each user query:
+### 💬 **Intelligent Query Engine**
+- Natural language question answering
+- Follow-up question support
+- Query enhancement and rewriting
+- Confidence scoring
+- Real-time streaming responses
+- Multi-language support (via Groq/OpenAI)
 
-Embed question
+### 🎨 **Modern User Interface**
+- Clean, minimal design
+- Responsive layout (mobile, tablet, desktop)
+- Real-time upload progress
+- Interactive chat interface
+- Document viewer with highlighting
+- Dark mode support (coming soon)
 
-Retrieve most relevant chunks from Qdrant
+### 📊 **Document Management** (coming soon)
+- Document library with search and filters
+- Version control
+- Tags and categories
+- Document metadata tracking
+- Delete and archive functionality
+- Storage analytics
 
-Send them with the query to OpenAI GPT-4o-mini
+### 📈 **Analytics & Monitoring** (coming soon)
+- Usage tracking per user
+- Query analytics
+- Document processing metrics
+- System health monitoring
+- Error logging and debugging
 
-Model responds only based on retrieved context
-
- Modular FastAPI Backend
-
-API routes:
-
-/upload → Upload & process documents
-
-/query → Ask questions
-
-/health → Service status
-
-Each component is isolated into its own service layer for clean architecture.
+---
