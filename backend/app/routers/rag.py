@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 @router.post("/query")
 async def query_rag(
     payload: dict,
-    current_user: User = Depends(get_current_active_user),  # PROTECTED NOW!
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -24,12 +24,10 @@ async def query_rag(
         query = payload["query"]
         logger.info(f"User {current_user.email} querying: {query}")
         
-        # Run RAG with USER-SPECIFIC collection
         collection_name = f"user_{current_user.id}_documents"
         answer = run_rag(query, collection_name=collection_name)
         logger.info(f"Generated answer for user {current_user.email}")
         
-        # Update user's query count
         current_user.queries_made += 1
         db.commit()
         logger.info(f"User {current_user.email} now has {current_user.queries_made} queries")

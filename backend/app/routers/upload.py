@@ -3,11 +3,12 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import os
 from app.services.docling_service import extract_text
-from app.services.embedder import store_vectors
+from app.services.rag_pipeline import store_vectors
 from app.services.embedder import embed_document
 from app.services.auth_service import get_current_active_user
 from app.models.user import User
 from app.database import get_db
+import uuid
 
 router = APIRouter()
 
@@ -22,7 +23,7 @@ class UploadResponse(BaseModel):
 @router.post("/upload", response_model=UploadResponse)
 async def upload_file(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_active_user),  # PROTECTED NOW!
+    current_user: User = Depends(get_current_active_user), 
     db: Session = Depends(get_db)
 ):
     """
@@ -34,7 +35,6 @@ async def upload_file(
         if not file:
             raise HTTPException(status_code=400, detail="No file uploaded")
 
-        # Save file to disk (user-specific folder)
         user_folder = os.path.join(UPLOAD_DIR, f"user_{current_user.id}")
         os.makedirs(user_folder, exist_ok=True)
         
@@ -52,7 +52,12 @@ async def upload_file(
             raise HTTPException(status_code=400, detail="No text could be extracted from the document")
 
         # Chunk + embed
-        vectors = embed_document(extracted_text)
+        document_id = str(uuid.uuid4())
+        vectors = embed_document(
+                       text=extracted_text,
+                       document_id=document_id,
+                       filename=file.filename
+)
         print(f"Generated {len(vectors)} vectors")
 
         # Store embeddings in USER-SPECIFIC Qdrant collection
