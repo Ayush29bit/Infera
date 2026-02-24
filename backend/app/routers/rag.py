@@ -1,43 +1,45 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import List, Optional
-import logging
-
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 from app.services.rag_pipeline import run_rag
+from app.services.auth_service import get_current_active_user
+from app.models.user import User
+from app.database import get_db
+import logging
 
 router = APIRouter()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-class QueryRequest(BaseModel):
-    query: str
-    document_ids: Optional[List[str]] = None
-
-
-class QueryResponse(BaseModel):
-    answer: str
-
-
-@router.post("/query", response_model=QueryResponse)
-async def query_rag(payload: QueryRequest):
+@router.post("/query")
+async def query_rag(
+    payload: dict,
+    current_user: User = Depends(get_current_active_user),  # PROTECTED NOW!
+    db: Session = Depends(get_db)
+):
+    """
+    Query documents using RAG (PROTECTED - requires authentication)
+    """
     try:
-        logger.info(f"Received query: {payload.query}")
-        logger.info(f"Document scope: {payload.document_ids}")
-
-        answer = run_rag(
-            query=payload.query,
-            document_ids=payload.document_ids,
-        )
-
-        logger.info(f"Generated answer (preview): {answer[:100]}...")
+        query = payload["query"]
+        logger.info(f"User {current_user.email} querying: {query}")
+        
+        # Run RAG with USER-SPECIFIC collection
+        collection_name = f"user_{current_user.id}_documents"
+        answer = run_rag(query, collection_name=collection_name)
+        logger.info(f"Generated answer for user {current_user.email}")
+        
+        # Update user's query count
+        current_user.queries_made += 1
+        db.commit()
+        logger.info(f"User {current_user.email} now has {current_user.queries_made} queries")
+        
         return {"answer": answer}
-
+    
+    except KeyError:
+        logger.error("Query field missing in payload")
+        raise HTTPException(status_code=400, detail="Query field is required")
+    
     except Exception as e:
         logger.error(f"Error in query_rag: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="Error processing query",
-        )
-
+        raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
