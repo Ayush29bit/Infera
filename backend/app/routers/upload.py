@@ -1,83 +1,76 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
 from pydantic import BaseModel
-from typing import List
+from sqlalchemy.orm import Session
 import os
-import uuid
-
 from app.services.docling_service import extract_text
-from app.services.embedder import embed_document, store_vectors
+from app.services.embedder import store_vectors
+from app.services.embedder import embed_document
+from app.services.auth_service import get_current_active_user
+from app.models.user import User
+from app.database import get_db
 
 router = APIRouter()
 
 UPLOAD_DIR = "uploaded_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-
 class UploadResponse(BaseModel):
     filename: str
-    document_id: str
     status: str
+    message: str
 
+@router.post("/upload", response_model=UploadResponse)
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),  # PROTECTED NOW!
+    db: Session = Depends(get_db)
+):
+    """
+    Upload and process a document (PROTECTED - requires authentication)
+    """
+    try:
+        print(f"User {current_user.email} uploading: {file.filename}")
+        
+        if not file:
+            raise HTTPException(status_code=400, detail="No file uploaded")
 
-@router.post("/upload", response_model=List[UploadResponse])
-async def upload_files(files: List[UploadFile] = File(...)):
-    if not files:
-        raise HTTPException(status_code=400, detail="No files uploaded")
+        # Save file to disk (user-specific folder)
+        user_folder = os.path.join(UPLOAD_DIR, f"user_{current_user.id}")
+        os.makedirs(user_folder, exist_ok=True)
+        
+        file_path = os.path.join(user_folder, file.filename)
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+        
+        print(f"File saved to: {file_path}")
 
-    responses = []
+        # Extract text with Docling
+        extracted_text = extract_text(file_path)
+        print(f"Extracted text length: {len(extracted_text)}")
+        
+        if not extracted_text.strip():
+            raise HTTPException(status_code=400, detail="No text could be extracted from the document")
 
-    for file in files:
-        try:
-            print(f"Received file: {file.filename}")
-            print(f"Content type: {file.content_type}")
+        # Chunk + embed
+        vectors = embed_document(extracted_text)
+        print(f"Generated {len(vectors)} vectors")
 
-            document_id = str(uuid.uuid4())
+        # Store embeddings in USER-SPECIFIC Qdrant collection
+        collection_name = f"user_{current_user.id}_documents"
+        store_vectors(vectors, collection_name=collection_name)
+        print(f"Vectors stored in collection: {collection_name}")
+        
+        # Update user's document count
+        current_user.documents_uploaded += 1
+        db.commit()
+        print(f"User {current_user.email} now has {current_user.documents_uploaded} documents")
 
-            # 1. Save file
-            file_path = os.path.join(UPLOAD_DIR, file.filename)
-            with open(file_path, "wb") as f:
-                f.write(await file.read())
-
-            print(f"File saved to: {file_path}")
-
-            # 2. Extract text
-            extracted_text = extract_text(file_path)
-            print(f"Extracted text length: {len(extracted_text)}")
-
-            if not extracted_text.strip():
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"No text extracted from {file.filename}"
-                )
-
-            # 3. Chunk + embed
-            vectors = embed_document(
-                extracted_text,
-                document_id=document_id,
-                filename=file.filename
-            )
-            print(f"Generated {len(vectors)} vectors")
-
-            # 4. Store in Qdrant
-            store_vectors(vectors)
-            print("Vectors stored successfully")
-
-            responses.append(
-                UploadResponse(
-                    filename=file.filename,
-                    document_id=document_id,
-                    status="processed"
-                )
-            )
-
-        except Exception as e:
-            print(f"Error processing {file.filename}: {e}")
-            responses.append(
-                UploadResponse(
-                    filename=file.filename,
-                    document_id="",
-                    status=f"failed: {str(e)}"
-                )
-            )
-
-    return responses
+        return {
+            "filename": file.filename,
+            "status": "processed",
+            "message": f"Document uploaded successfully! You now have {current_user.documents_uploaded} documents."
+        }
+    
+    except Exception as e:
+        print(f"Error in upload_file: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
