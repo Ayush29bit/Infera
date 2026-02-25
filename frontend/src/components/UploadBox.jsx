@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function UploadBox() {
   const [files, setfiles] = useState([]);
   const [status, setStatus] = useState("");
+  const { token } = useAuth();
 
   const uploadFile = async () => {
     if (files.length === 0) return;
@@ -20,6 +22,10 @@ export default function UploadBox() {
       
       const res = await fetch("http://127.0.0.1:8000/api/upload", {
         method: "POST",
+        headers: {
+          "Authorization" : `Bearer ${token}`,
+        },
+        
         body: formData,
         
       });
