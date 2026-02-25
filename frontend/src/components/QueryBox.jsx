@@ -1,16 +1,22 @@
 import { useState } from "react";
 import { Send, Sparkles } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function QueryBox({ setAnswer }) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const { token } = useAuth();
 
   const askQuestion = async () => {
     setLoading(true);
 
     const res = await fetch("http://127.0.0.1:8000/api/query", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization" : `Bearer ${token}`,
+       },
+       
       body: JSON.stringify({ query }),
     });
 
