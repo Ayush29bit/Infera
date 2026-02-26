@@ -7,10 +7,10 @@ from app.services.embedder import embed_document, embed_query
 
 load_dotenv()
 
-qdrant = QdrantClient(
+qdrant = QdrantClient (
     url=os.getenv("QDRANT_URL"),
-    api_key=os.getenv("QDRANT_API_KEY")
-    timeout=120
+    api_key=os.getenv("QDRANT_API_KEY"),
+    timeout=120,
 )
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -81,7 +81,7 @@ def run_rag(query: str, collection_name: str):
 
     chunks = retrieve_chunks(query, collection_name=collection_name)
     if not chunks:
-        
+
         return "I couldn't find any relevant information in your uploaded documents. Please make sure you've uploaded documents first."
     
     return generate_answer(query, chunks)
