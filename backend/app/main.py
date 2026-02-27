@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import health, upload, rag, auth
+from app.database import engine, Base
 
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Smart Compliance Assistant - Backend")
 
