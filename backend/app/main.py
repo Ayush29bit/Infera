@@ -18,7 +18,7 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api")
 app.include_router(upload.router, prefix="/api", tags=["upload"])
 app.include_router(rag.router, prefix="/api", tags=["rag"])
-app.include_router(auth.router, prefix="/api", tags=["auth"])
+app.include_router(auth.router, tags=["auth"])
 
 @app.get("/")
 def read_root():
