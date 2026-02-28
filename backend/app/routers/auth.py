@@ -47,18 +47,38 @@ def login(
 ):
     """Login with email and password"""
     
+    print(f"\n=== LOGIN ATTEMPT ===")
+    print(f"Received username (email): {form_data.username}")
+    print(f"Received password: {form_data.password}")
+    
+    # Find user
+    user = auth.get_user_by_email(db, form_data.username)
+    print(f"User found in DB: {user}")
+    
+    if user:
+        print(f"User email: {user.email}")
+        print(f"User hashed password: {user.hashed_password}")
+    
+    # Authenticate
     user = auth.authenticate_user(db, form_data.username, form_data.password)
+    print(f"Authentication result: {user}")
+    
     if not user:
+        print("Authentication failed - user is None")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    print("Authentication successful")
+    
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
+    
+    print(f"Token created: {access_token[:50]}...")
     
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -112,3 +132,12 @@ async def change_password(
     db.refresh(current_user)    
     
     return {"message": "Password updated successfully"}
+
+@router.get("/debug/users")
+def get_all_users(db: Session = Depends(get_db)):
+    """Debug endpoint - remove in production"""
+    users = db.query(User).all()
+    return {
+        "count": len(users),
+        "users": [{"id": u.id, "email": u.email, "username": u.username} for u in users]
+    }

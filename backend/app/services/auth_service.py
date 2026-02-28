@@ -44,11 +44,29 @@ def get_user_by_username(db: Session, username: str):
 
 def authenticate_user(db: Session, email: str, password: str):
     """Authenticate a user"""
-    user = get_user_by_email(db, email)
+    print(f"=== AUTHENTICATION DEBUG ===")
+    print(f"Looking for email: {email}")
+    
+    # Find user by email
+    user = db.query(User).filter(User.email == email).first()
+    print(f"User found: {user}")
+    
     if not user:
+        print("User not found in database")
         return False
-    if not verify_password(password, user.hashed_password):
+    
+    print(f"User hashed password: {user.hashed_password[:20]}...")
+    print(f"Verifying password...")
+    
+    # Check password
+    password_valid = verify_password(password, user.hashed_password)
+    print(f"Password valid: {password_valid}")
+    
+    if not password_valid:
+        print("Password verification failed")
         return False
+    
+    print("Authentication successful!")
     return user
 
 async def get_current_user(
