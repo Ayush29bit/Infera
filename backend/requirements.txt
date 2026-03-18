@@ -1,25 +1,42 @@
+# Backend dependencies for the application
 fastapi
 uvicorn[standard]
 pydantic
 python-multipart
+pydantic[email]
 
+#For LLM inference and interaction
+groq
+
+#For vector database and search
 qdrant-client        
 
+#For environment variable management
 python-dotenv        
 
+#For web scraping and data fetching
 requests
-sentence-transformers
+
+#For vector search and embeddings
+sentence-transforme
 numpy
 
+#For PDF processing
 pdf2image
 pillow
 pymupdf
 
-## For document parsing we have used docling
+## For document parsing
 docling
 
+#Database dependencies
 sqlalchemy
 
+
+#Authentication dependencies
 python-jose[cryptography]
 passlib[bcrypt]
+
+bcrypt==4.0.1 
+passlib==1.7.4
 
