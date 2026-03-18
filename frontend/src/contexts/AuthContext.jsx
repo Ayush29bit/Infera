@@ -60,7 +60,6 @@ export const AuthProvider = ({ children }) => {
     const data = await response.json();
     localStorage.setItem('token', data.access_token);
     setToken(data.access_token);
-    await fetchUser();
     return data;
   };
 

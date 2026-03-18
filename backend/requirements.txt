@@ -3,22 +3,17 @@ uvicorn[standard]
 pydantic
 python-multipart
 
-
 qdrant-client        
 
 python-dotenv        
-
 
 requests
 sentence-transformers
 numpy
 
-
-
 pdf2image
 pillow
 pymupdf
-
 
 ## For document parsing we have used docling
 docling
