@@ -1,14 +1,34 @@
+# This file lists the Python dependencies for the backend application.
+
+# Backend dependencies
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 sqlalchemy==2.0.23
+
 pydantic-settings==2.1.0
+
+# For authentication
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-jose[cryptography]==3.3.0
+
+# For handling file uploads
 python-multipart==0.0.6
+
+# For email validation
 email-validator==2.1.0
+
+# For llM interaction
 groq==0.4.1
+
+# For vector database interaction
 qdrant-client==1.7.0
+
+# For embedding generation
 sentence-transformers==2.2.2
+
+# For document processing
 docling==2.66.0
+
+# For environment variable management
 python-dotenv==1.0.0
