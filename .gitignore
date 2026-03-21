@@ -144,6 +144,7 @@ ENV/
 env.bak/
 venv.bak/
 smart/
+smart_old/
 
 # Spyder project settings
 .spyderproject
