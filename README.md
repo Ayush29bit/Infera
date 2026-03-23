@@ -1,4 +1,4 @@
-# Smart Compliance Assistant
+#   Infera
 
 <div align="center">
 
