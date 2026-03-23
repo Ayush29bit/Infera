@@ -113,3 +113,27 @@
 - **Logging**: Structured logging
 
 ---
+
+## 🏗️ System Architecture
+
+![RAG Architecture](./assets/SCA5.png)
+
+
+The system is designed as a modular, production-oriented RAG pipeline:
+
+### 🔹 Upload Pipeline
+- Documents are uploaded via FastAPI
+- Parsed using Docling / PyMuPDF
+- Chunked and converted into embeddings using sentence-transformers
+- Stored in Qdrant for efficient similarity search
+
+### 🔹 Query Pipeline
+- User queries are embedded into vector space
+- Top-K relevant chunks are retrieved from Qdrant
+- Context is passed to an LLM (Groq/Ollama) for response generation
+
+### 🔹 Backend Layer
+- FastAPI handles API orchestration
+- JWT-based authentication ensures secure access
+
+This architecture enables scalable, extensible, and production-ready RAG workflows.
