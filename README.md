@@ -14,9 +14,9 @@
 
 ## Overview
 
-**Smart Compliance Assistant** is an enterprise-grade AI-powered document intelligence platform that enables organizations to extract insights from their compliance documents instantly. Built with cutting-edge RAG (Retrieval-Augmented Generation) technology, it provides accurate, context-aware answers to queries across multiple document formats.
+**Infera** is an enterprise-grade AI-powered document intelligence platform that enables organizations to extract insights from their compliance documents instantly. Built with cutting-edge RAG (Retrieval-Augmented Generation) technology, it provides accurate, context-aware answers to queries across multiple document formats.
 
-### Why Smart Compliance Assistant?
+### Why Infera?
 
 - 🎯 **Accuracy**: Leverages advanced RAG architecture with hybrid search for precise answers
 - ⚡ **Speed**: Process and query documents in seconds, not hours
