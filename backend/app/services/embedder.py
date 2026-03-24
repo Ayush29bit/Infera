@@ -84,43 +84,30 @@ def embed_document(text: str, document_id: str, filename: str)-> List[Dict[str, 
           chunk_index, text, and bm25
 
     """
-    CHUNK_SIZE = 300
-    words = text.split()
-    chunks = []
-    current = []
-    chunk_index = 0
-
-    for word in words:
-        current.append(word)
-        if len(current) >= CHUNK_SIZE:
-            chunk_text = " ".join(current)
-            chunks.append({
-                "id": str(uuid.uuid4()),
-                "embedding": get_embedder().encode(chunk_text).tolist(),
-                "payload": {
-                    "document_id": document_id,
-                    "filename": filename,
-                    "chunk_index": chunk_index,
-                    "text": chunk_text
-                }
-            })
-            chunk_index += 1
-            current = []
-
-    if current:
-        chunk_text = " ".join(current)
-        chunks.append({
+    sentences = _split_into_sentences(text)
+    chunks = _build_chunks(sentences)
+    embedder = get_embedder()
+    
+    embeddings = embedder.encode(chunks, show_progress_bar=False).tolist()
+ 
+    points = []
+    for idx, (chunk_text, embedding) in enumerate(zip(chunks, embeddings)):
+        points.append({
             "id": str(uuid.uuid4()),
-            "embedding": get_embedder().encode(chunk_text).tolist(),
+            "embedding": embedding,
             "payload": {
                 "document_id": document_id,
                 "filename": filename,
-                "chunk_index": chunk_index,
-                "text": chunk_text
-            }
+                "chunk_index": idx,
+                "text": chunk_text,
+                "bm25_tf": _compute_bm25_tf(chunk_text),
+                "total_chunks": len(chunks),
+            },
         })
-
-    return chunks
+ 
+    print(f"[embedder] '{filename}' → {len(chunks)} chunks, "
+          f"avg {sum(len(c.split()) for c in chunks) // max(len(chunks), 1)} words/chunk")
+    return points
 
 def embed_query(query: str) -> list[float]:
     """
