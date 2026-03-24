@@ -32,3 +32,9 @@ docling==2.66.0
 
 # For environment variable management
 python-dotenv==1.0.0
+
+# RAG Evaluation dependencies 
+ragas 
+langchain-groq 
+langchain-community 
+datasets 
