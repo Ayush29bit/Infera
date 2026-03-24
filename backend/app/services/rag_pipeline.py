@@ -4,6 +4,11 @@ from qdrant_client.models import VectorParams, Distance, PointStruct
 from groq import Groq
 from dotenv import load_dotenv
 from app.services.embedder import embed_document, embed_query
+import re 
+from typing import List, Dict, Tuple, Any
+from sentence_transformers import CrossEncoder
+from app.config import settings
+import math 
 
 load_dotenv()
 
@@ -13,6 +18,21 @@ qdrant = QdrantClient (
     timeout=120,
 )
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+# Reranker initialization
+_reranker = None
+def get_reranker()->CrossEncoder:
+    global _reranker
+    if _reranker is None:
+        print("[reranker] Loading cross-encoder modek...")
+        _reranker=CrossEncoder("cross-encoder/ms-macro-MiniLM-L-6-v2")
+    return _reranker
+
+#Retrieval parameters numbers
+DENSE_TOP_K=20 
+BM25_TOP_K=20
+RRF_K=60
+RERANK_TOP_N=5
 
 def ensure_collection(collection_name: str):
     """Ensure a collection exists for a specific user"""
