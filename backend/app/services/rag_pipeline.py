@@ -1,3 +1,11 @@
+"""
+This is a optimal RAG Pipeline for Infera
+This uses Hybrid Retreval strategy using both Dense Vector search and BM25 Search
+
+RRF merges ranked lists 
+Cross Encoder reranks the context
+"""
+
 import os
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct
@@ -47,10 +55,9 @@ def ensure_collection(collection_name: str):
         )
         print(f"Created collection: {collection_name}")
 
-def store_vectors(vectors):
-    qdrant.upsert(
-        collection_name="documents",
-        points=[
+def store_vectors(vectors:List[Dict[str,Any]], collection_name:str):
+    ensure_collection(collection_name)
+    points=[
             PointStruct(
                 id=v["id"],
                 vector=v["embedding"],
@@ -58,8 +65,25 @@ def store_vectors(vectors):
             )
             for v in vectors
         ]
+    qdrant.upsert(collection_name=collection_name,points=points)
+    print(f"Stored {len(vectors)} vectors in {collection_name}")
+
+def _dense_search(
+    query_vector: List[float],
+    collection_name: str,
+    top_k: int,
+) -> List[Dict[str, Any]]:
+    """Return top_k chunks by cosine similarity with their payloads."""
+    results = qdrant.query_points(
+        collection_name=collection_name,
+        query=query_vector,
+        limit=top_k,
+        with_payload=True,
     )
-    print(f"Stored {len(vectors)} vectors in Qdrant")
+    return [
+        {"score": point.score, "payload": point.payload}
+        for point in results.points
+    ]
 
 def retrieve_chunks(query: str, collection_name: str, limit: int = 5):
     """Retrieve relevant chunks from user's collection"""
