@@ -85,6 +85,72 @@ def _dense_search(
         for point in results.points
     ]
 
+def _tokenise_query(query: str) -> List[str]:
+    return re.findall(r"\b[a-z]{2,}\b", query.lower())
+ 
+def _bm25_search(
+    query: str,
+    collection_name: str,
+    top_k: int,
+    k1: float = 1.5,
+    b: float = 0.75,
+) -> List[Dict[str, Any]]:
+    """
+    BM25 formula:
+      score(D,Q) = Σ IDF(qi) * [ tf(qi,D)*(k1+1) ] / [ tf(qi,D) + k1*(1-b+b*|D|/avgdl) ]
+    IDF is approximated from the fetched corpus on the fly.
+    """
+    query_terms = _tokenise_query(query)
+    if not query_terms:
+        return []
+    all_points, _ = qdrant.scroll(
+        collection_name=collection_name,
+        limit=10_000,
+        with_payload=True,
+        with_vectors=False,
+    )
+ 
+    if not all_points:
+        return []
+ 
+    corpus = [p.payload for p in all_points]
+    N = len(corpus)
+    avg_dl = sum(
+        sum(p.get("bm25_tf", {}).values()) for p in corpus
+    ) / max(N, 1)
+ 
+    # IDF: log((N - df + 0.5) / (df + 0.5) + 1) — Robertson IDF
+    df: Dict[str, int] = {}
+    for payload in corpus:
+        tf_map = payload.get("bm25_tf", {})
+        for term in set(query_terms):
+            if term in tf_map:
+                df[term] = df.get(term, 0) + 1
+ 
+    idf: Dict[str, float] = {
+        term: math.log((N - df.get(term, 0) + 0.5) / (df.get(term, 0) + 0.5) + 1)
+        for term in query_terms
+    }
+    scored = []
+    for payload in corpus:
+        tf_map = payload.get("bm25_tf", {})
+        dl = sum(tf_map.values()) if tf_map else 1.0
+        score = 0.0
+        for term in query_terms:
+            tf = tf_map.get(term, 0.0)
+            # Reconstruct raw tf from normalised value stored at index time
+            raw_tf = tf * dl
+            numerator = raw_tf * (k1 + 1)
+            denominator = raw_tf + k1 * (1 - b + b * dl / max(avg_dl, 1))
+            score += idf.get(term, 0.0) * numerator / max(denominator, 1e-9)
+ 
+        if score > 0:
+            scored.append({"score": score, "payload": payload})
+ 
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[:top_k]
+
+
 def retrieve_chunks(query: str, collection_name: str, limit: int = 5):
     """Retrieve relevant chunks from user's collection"""
     ensure_collection(collection_name)
