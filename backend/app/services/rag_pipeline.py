@@ -210,19 +210,19 @@ def _build_context_block(chunks: List[Dict[str, Any]]) -> str:
         parts.append(f"[{i}] Source: {filename} (chunk {chunk_idx})\n{text}")
     return "\n\n---\n\n".join(parts)
 
-
-def retrieve_chunks(query: str, collection_name: str, limit: int = 5):
-    """Retrieve relevant chunks from user's collection"""
-    ensure_collection(collection_name)
-    
-    query_vector = embed_query(query)
-
-    results = qdrant.query_points(
-        collection_name=collection_name,
-        query=query_vector,
-        limit=limit
-    )
-    return [point.payload["text"] for point in results.points]
+SYSTEM_PROMPT = """You are a precise compliance document assistant.
+ 
+Your job is to answer questions using ONLY the provided document excerpts.
+ 
+Rules:
+- Base every claim on the provided context. Do not use outside knowledge.
+- After each claim, cite the source using [1], [2], etc. matching the excerpt numbers.
+- If multiple excerpts support a claim, cite all of them: [1][3].
+- If the context does not contain enough information to answer, say exactly:
+  "The uploaded documents do not contain sufficient information to answer this question."
+- Never hallucinate section numbers, dates, or obligations not present in the context.
+- Be concise but complete. Use bullet points for lists of obligations or requirements.
+"""
 
 def generate_answer(query: str, chunks: list[str]):
     """Generate answer using Groq"""
