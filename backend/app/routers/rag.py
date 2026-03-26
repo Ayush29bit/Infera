@@ -50,22 +50,24 @@ async def query_rag(
     Query documents using RAG (PROTECTED - requires authentication)
     """
     try:
-        query = payload["query"]
-        logger.info(f"User {current_user.email} querying: {query}")
+        if not request.query.strip():
+            raise HTTPException(400, "Query cannot be empty")
+        
+        logger.info(f"User {current_user.email} querying: {request.query}")
         
         collection_name = f"user_{current_user.id}_documents"
-        answer = run_rag(query, collection_name=collection_name)
+        answer = run_rag(query=request.query, collection_name=collection_name)
         logger.info(f"Generated answer for user {current_user.email}")
         
         current_user.queries_made += 1
         db.commit()
         logger.info(f"User {current_user.email} now has {current_user.queries_made} queries")
         
-        return {"answer": answer}
-    
-    except KeyError:
-        logger.error("Query field missing in payload")
-        raise HTTPException(status_code=400, detail="Query field is required")
+        return QueryResponse(
+            answer=answer["answer"],
+            sources=[SourceChunk(**s) for s in answer["sources"]],
+            debug=answer["debug"],
+        )
     
     except Exception as e:
         logger.error(f"Error in query_rag: {str(e)}")
@@ -83,8 +85,6 @@ async def evaluate_response(
     - Score a response that was just generated
     - Audit historical responses
     - Compare pipeline versions
- 
-    Tip: pass ground_truth for context_recall scoring.
     """
     if not request.contexts:
         raise HTTPException(
@@ -109,7 +109,6 @@ async def evaluate_batch_endpoint(
     """
     Evaluate multiple query/answer pairs in one call.
     Returns per-sample scores and aggregated means.
-    Useful for offline benchmarking of the full pipeline.
     """
     if not request.samples:
         raise HTTPException(status_code=400, detail="samples list cannot be empty.")
