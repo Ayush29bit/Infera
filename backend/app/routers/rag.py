@@ -5,11 +5,39 @@ from app.services.auth_service import get_current_active_user
 from app.models.user import User
 from app.database import get_db
 import logging
+from pydantic import BaseModel
+from app.services.evaluator import evaluate_rag_response
+from typing import Optional, List, Dict, Any
 
 router = APIRouter()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Schemas for req and res
+
+class QueryRequest(BaseModel):
+    query: str
+ 
+ 
+class SourceChunk(BaseModel):
+    filename: str
+    chunk_index: Optional[int] = None
+    text: str
+    rerank_score: float
+ 
+ 
+class QueryResponse(BaseModel):
+    answer: str
+    sources: List[SourceChunk]
+    debug: dict
+ 
+ 
+class EvaluateRequest(BaseModel):
+    query: str
+    answer: str
+    contexts: List[str]
+    ground_truth: Optional[str] = None 
 
 @router.post("/query")
 async def query_rag(
