@@ -36,10 +36,10 @@ class EvaluateRequest(BaseModel):
     contexts: List[str]
     ground_truth: Optional[str] = None 
 
-class BatchEvaluateRequest:
-     samples: List[EvaluateRequest]
+class BatchEvaluateRequest(BaseModel):
+    samples: List[EvaluateRequest]
 
-@router.post("query", response_model=QueryResponse)
+@router.post("/query", response_model=QueryResponse)
 async def query_rag(
     payload: dict,
     request: QueryRequest,
@@ -73,7 +73,7 @@ async def query_rag(
         logger.error(f"Error in query_rag: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
     
-@router.post("/api/evaluate")
+@router.post("/evaluate")
 async def evaluate_response(
     request: EvaluateRequest,
     current_user: User = Depends(get_current_active_user),
@@ -101,7 +101,7 @@ async def evaluate_response(
     return result
  
  
-@router.post("/api/evaluate/batch")
+@router.post("/evaluate/batch")
 async def evaluate_batch_endpoint(
     request: BatchEvaluateRequest,
     current_user: User = Depends(get_current_active_user),
