@@ -225,33 +225,72 @@ Rules:
 """
 
 def generate_answer(query: str, chunks: list[str]):
-    """Generate answer using Groq"""
-    context = "\n\n".join(chunks)
+    """Generate answer using llm with proper citation and reranker"""
+    if not chunks:
+        return("I couldn't find any relevant information in your uploaded documents.")
+
+    context = _build_context_block(chunks)
+
+    user_message = f"""Document excerpts:
+ 
+{context}
+ 
+---
+ 
+Question: {query}
+ 
+Answer (with citations):"""
 
     response = groq_client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
             {
                 "role": "system",
-                "content": "Answer strictly using the provided context."
+                "content": SYSTEM_PROMPT
             },
             {
                 "role": "user",
-                "content": f"Context:\n{context}\n\nQuestion:\n{query}"
+                "content": user_message
             }
         ],
-        temperature=0.5,
+        temperature=0.2,
         max_tokens=1024
     )
     return response.choices[0].message.content
 
-def run_rag(query: str, collection_name: str):
+def run_rag(query: str, collection_name: str) -> Dict[str, Any]:
+    """
+    Execute the full hybrid RAG pipeline for a user query.
+    """
+  
+    query_vector = embed_query(query)
+ 
+    dense_results = _dense_search(query_vector, collection_name, DENSE_TOP_K)
+    bm25_results  = _bm25_search(query, collection_name, BM25_TOP_K)
+ 
+    fused = _rrf_fusion(dense_results, bm25_results)
 
-    """Run the RAG pipeline for a specific user's documents"""
-
-    chunks = retrieve_chunks(query, collection_name=collection_name)
-    if not chunks:
-
-        return "I couldn't find any relevant information in your uploaded documents. Please make sure you've uploaded documents first."
-    
-    return generate_answer(query, chunks)
+    final_chunks = _rerank(query, fused, top_n=RERANK_TOP_N)
+ 
+    answer = generate_answer(query, final_chunks)
+ 
+    sources = [
+        {
+            "filename":    c["payload"].get("filename", "unknown"),
+            "chunk_index": c["payload"].get("chunk_index"),
+            "text":        c["payload"].get("text", ""),
+            "rerank_score": round(c.get("rerank_score", 0.0), 4),
+        }
+        for c in final_chunks
+    ]
+ 
+    return {
+        "answer": answer,
+        "sources": sources,
+        "debug": {
+            "dense_retrieved":len(dense_results),
+            "bm25_retrieved":len(bm25_results),
+            "after_fusion":len(fused),
+            "after_rerank":len(final_chunks),
+        },
+    }
