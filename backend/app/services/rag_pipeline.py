@@ -36,7 +36,7 @@ def get_reranker()->CrossEncoder:
         _reranker=CrossEncoder("cross-encoder/ms-macro-MiniLM-L-6-v2")
     return _reranker
 
-#Retrieval parameters numbers
+# Retrieval parameters configs
 DENSE_TOP_K=20 
 BM25_TOP_K=20
 RRF_K=60
@@ -118,8 +118,7 @@ def _bm25_search(
     avg_dl = sum(
         sum(p.get("bm25_tf", {}).values()) for p in corpus
     ) / max(N, 1)
- 
-    # IDF: log((N - df + 0.5) / (df + 0.5) + 1) — Robertson IDF
+
     df: Dict[str, int] = {}
     for payload in corpus:
         tf_map = payload.get("bm25_tf", {})
@@ -138,7 +137,6 @@ def _bm25_search(
         score = 0.0
         for term in query_terms:
             tf = tf_map.get(term, 0.0)
-            # Reconstruct raw tf from normalised value stored at index time
             raw_tf = tf * dl
             numerator = raw_tf * (k1 + 1)
             denominator = raw_tf + k1 * (1 - b + b * dl / max(avg_dl, 1))
@@ -149,6 +147,68 @@ def _bm25_search(
  
     scored.sort(key=lambda x: x["score"], reverse=True)
     return scored[:top_k]
+
+def _rrf_fusion(
+    dense_results: List[Dict[str, Any]],
+    bm25_results: List[Dict[str, Any]],
+    k: int = RRF_K,
+) -> List[Dict[str, Any]]:
+    """
+    Merge dense and BM25 ranked lists using Reciprocal Rank Fusion.
+    """
+    rrf_scores: Dict[str, float] = {}
+    payloads: Dict[str, Dict] = {}
+ 
+    def _chunk_key(payload: Dict) -> str:
+        return f"{payload.get('document_id', '')}::{payload.get('chunk_index', '')}"
+ 
+    for rank, item in enumerate(dense_results, start=1):
+        key = _chunk_key(item["payload"])
+        rrf_scores[key] = rrf_scores.get(key, 0.0) + 1.0 / (k + rank)
+        payloads[key] = item["payload"]
+ 
+    for rank, item in enumerate(bm25_results, start=1):
+        key = _chunk_key(item["payload"])
+        rrf_scores[key] = rrf_scores.get(key, 0.0) + 1.0 / (k + rank)
+        payloads[key] = item["payload"]
+ 
+    fused = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
+    return [{"rrf_score": score, "payload": payloads[key]} for key, score in fused]
+ 
+def _rerank(
+    query: str,
+    candidates: List[Dict[str, Any]],
+    top_n: int = RERANK_TOP_N,
+) -> List[Dict[str, Any]]:
+    """
+    Score each (query, chunk) pair with a cross-encoder and return top_n.
+    Cross-encoders are far more accurate than bi-encoders for relevance
+    but too slow to run on the full corpus — hence the two-stage approach.
+    """
+    if not candidates:
+        return []
+ 
+    reranker = get_reranker()
+    pairs = [(query, c["payload"]["text"]) for c in candidates]
+    scores = reranker.predict(pairs).tolist()
+ 
+    for candidate, score in zip(candidates, scores):
+        candidate["rerank_score"] = score
+ 
+    candidates.sort(key=lambda x: x["rerank_score"], reverse=True)
+    return candidates[:top_n]
+ 
+def _build_context_block(chunks: List[Dict[str, Any]]) -> str:
+    """
+    Format retrieved chunks into a numbered citation block for the prompt.
+    """
+    parts = []
+    for i, chunk in enumerate(chunks, start=1):
+        filename = chunk["payload"].get("filename", "unknown")
+        chunk_idx = chunk["payload"].get("chunk_index", "?")
+        text = chunk["payload"].get("text", "")
+        parts.append(f"[{i}] Source: {filename} (chunk {chunk_idx})\n{text}")
+    return "\n\n---\n\n".join(parts)
 
 
 def retrieve_chunks(query: str, collection_name: str, limit: int = 5):
