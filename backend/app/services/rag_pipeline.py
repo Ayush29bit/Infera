@@ -33,7 +33,7 @@ def get_reranker()->CrossEncoder:
     global _reranker
     if _reranker is None:
         print("[reranker] Loading cross-encoder model...")
-        _reranker=CrossEncoder("cross-encoder/ms-macro-MiniLM-L6-v2")
+        _reranker=CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
     return _reranker
 
 # Retrieval parameters configs
