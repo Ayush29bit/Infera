@@ -32,8 +32,8 @@ _reranker = None
 def get_reranker()->CrossEncoder:
     global _reranker
     if _reranker is None:
-        print("[reranker] Loading cross-encoder modek...")
-        _reranker=CrossEncoder("cross-encoder/ms-macro-MiniLM-L-6-v2")
+        print("[reranker] Loading cross-encoder model...")
+        _reranker=CrossEncoder("cross-encoder/ms-macro-MiniLM-L6-v2")
     return _reranker
 
 # Retrieval parameters configs
@@ -294,3 +294,5 @@ def run_rag(query: str, collection_name: str) -> Dict[str, Any]:
             "after_rerank":len(final_chunks),
         },
     }
+
+
