@@ -1,206 +1,473 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
+
+  .auth-page {
+    min-height: 100vh;
+    background: #0D1B2A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .auth-page::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
+    background-size: 80px 80px;
+    pointer-events: none;
+  }
+
+  .auth-page::after {
+    content: '';
+    position: fixed;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .auth-z { position: relative; z-index: 1; }
+
+  .auth-card {
+    width: 100%;
+    max-width: 440px;
+    background: #162235;
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 16px;
+    overflow: hidden;
+    animation: auth-in 0.5s ease both;
+  }
+
+  @keyframes auth-in {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .auth-card::before {
+    content: '';
+    display: block;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #C9A84C, transparent);
+  }
+
+  .auth-card-inner { padding: 2.2rem 2.2rem 2rem; }
+
+  .auth-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.8rem;
+  }
+
+  .auth-logo-mark {
+    width: 44px;
+    height: 44px;
+    background: #C9A84C;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: #0D1B2A;
+    margin-bottom: 0.9rem;
+  }
+
+  .auth-brand-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.2rem;
+  }
+
+  .auth-brand-sub {
+    font-size: 13px;
+    color: #8A9BB0;
+    margin: 0;
+  }
+
+  /* Alert banners */
+  .auth-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 1.2rem;
+    font-size: 13px;
+    animation: auth-in 0.3s ease;
+  }
+
+  .auth-alert.error {
+    background: rgba(226,75,74,0.08);
+    border: 1px solid rgba(226,75,74,0.2);
+    color: #F09595;
+  }
+
+  .auth-alert.success {
+    background: rgba(40,200,64,0.08);
+    border: 1px solid rgba(40,200,64,0.2);
+    color: #5FD97A;
+  }
+
+  /* Two-column grid for username + full name */
+  .auth-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  @media (max-width: 480px) {
+    .auth-row { grid-template-columns: 1fr; }
+  }
+
+  .auth-field { margin-bottom: 1rem; }
+
+  .auth-label {
+    display: block;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8A9BB0;
+    margin-bottom: 6px;
+  }
+
+  .auth-label-hint {
+    color: #4A6080;
+    font-size: 10px;
+    margin-left: 4px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .auth-input-wrap { position: relative; }
+
+  .auth-input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #4A6080;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+  }
+
+  .auth-input {
+    width: 100%;
+    padding: 11px 14px 11px 38px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    color: #F7F3EC;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .auth-input::placeholder { color: #3A5070; }
+
+  .auth-input:focus {
+    border-color: rgba(201,168,76,0.4);
+    background: rgba(201,168,76,0.02);
+  }
+
+  .auth-input-hint {
+    font-size: 10px;
+    color: #4A6080;
+    font-family: 'DM Mono', monospace;
+    margin-top: 4px;
+    padding-left: 2px;
+  }
+
+  /* Password match indicator */
+  .auth-pw-match {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    margin-top: 5px;
+    padding-left: 2px;
+  }
+
+  .auth-pw-match.ok    { color: #5FD97A; }
+  .auth-pw-match.no    { color: #F09595; }
+
+  .auth-btn {
+    width: 100%;
+    padding: 13px;
+    background: #C9A84C;
+    border: none;
+    border-radius: 8px;
+    color: #0D1B2A;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.02em;
+    transition: all 0.2s;
+    margin-top: 1.4rem;
+  }
+
+  .auth-btn:hover:not(:disabled) {
+    background: #E8C97A;
+    transform: translateY(-1px);
+  }
+
+  .auth-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .auth-spin { animation: auth-rotate 0.8s linear infinite; }
+  @keyframes auth-rotate { to { transform: rotate(360deg); } }
+
+  .auth-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 1.4rem 0 1.2rem;
+  }
+
+  .auth-footer {
+    text-align: center;
+    font-size: 13px;
+    color: #4A6080;
+  }
+
+  .auth-footer a {
+    color: #C9A84C;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .auth-footer a:hover { color: #E8C97A; }
+`;
 
 export default function Register() {
-  const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [password, setPassword] = useState('');
+  // ── LOGIC: DO NOT EDIT ──────────────────────────────────────────────────
+  const [email, setEmail]                   = useState('');
+  const [username, setUsername]             = useState('');
+  const [fullName, setFullName]             = useState('');
+  const [password, setPassword]             = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError]                   = useState('');
+  const [success, setSuccess]               = useState(false);
+  const [isLoading, setIsLoading]           = useState(false);
   const { register } = useAuth();
-  const navigate = useNavigate();
+  const navigate     = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    // Validation
     if (password.length < 8) {
       setError('Password must be at least 8 characters long');
       return;
     }
-
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
     setIsLoading(true);
-
     try {
       await register(email, username, password, fullName);
       setSuccess(true);
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
+  // ── END LOGIC ────────────────────────────────────────────────────────────
+
+  // Live password match feedback
+  const pwTyped = confirmPassword.length > 0;
+  const pwMatch = password === confirmPassword;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 flex items-center justify-center px-4 py-8">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-200 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-200 rounded-full blur-3xl"></div>
-      </div>
+    <>
+      <style>{styles}</style>
+      <div className="auth-page">
+        <div className="auth-z" style={{ width: '100%', maxWidth: 440 }}>
+          <div className="auth-card">
+            <div className="auth-card-inner">
 
-      <div className="relative z-10 w-full max-w-md">
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-2xl">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500 rounded-2xl mb-4">
-              <UserPlus className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-800">Create Account</h1>
-            <p className="text-slate-600 mt-2">Sign up to get started</p>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
-
-          {/* Success Message */}
-          {success && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-green-700">Account created! Redirecting to login...</p>
-            </div>
-          )}
-
-          {/* Register Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Field */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
+              {/* Brand */}
+              <div className="auth-brand">
+                <div className="auth-logo-mark">I</div>
+                <h1 className="auth-brand-name">Infera</h1>
+                <p className="auth-brand-sub">Create your free account</p>
               </div>
-            </div>
 
-            {/* Username Field */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Username
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="johndoe"
-                  required
-                  minLength={3}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Full Name Field */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Full Name (Optional)
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="John Doe"
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  minLength={8}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-              </div>
-              <p className="text-xs text-slate-500 mt-1">At least 8 characters</p>
-            </div>
-
-            {/* Confirm Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading || success}
-              className="w-full py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Creating account...</span>
+              {/* Error */}
+              {error && (
+                <div className="auth-alert error">
+                  <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                  {error}
                 </div>
-              ) : (
-                'Create Account'
               )}
-            </button>
-          </form>
 
-          {/* Login Link */}
-          <div className="mt-6 text-center">
-            <p className="text-slate-600">
-              Already have an account?{' '}
-              <Link to="/login" className="text-blue-500 hover:text-blue-600 font-semibold">
-                Sign in
-              </Link>
-            </p>
+              {/* Success */}
+              {success && (
+                <div className="auth-alert success">
+                  <CheckCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                  Account created! Redirecting to login...
+                </div>
+              )}
+
+              {/* Form — onSubmit preserved exactly */}
+              <form onSubmit={handleSubmit}>
+
+                {/* Email */}
+                <div className="auth-field">
+                  <label className="auth-label">Email address</label>
+                  <div className="auth-input-wrap">
+                    <span className="auth-input-icon"><Mail size={14} /></span>
+                    <input
+                      className="auth-input"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Username + Full Name in a row */}
+                <div className="auth-row">
+                  <div className="auth-field">
+                    <label className="auth-label">Username</label>
+                    <div className="auth-input-wrap">
+                      <span className="auth-input-icon"><User size={14} /></span>
+                      <input
+                        className="auth-input"
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="johndoe"
+                        required
+                        minLength={3}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <label className="auth-label">
+                      Full name
+                      <span className="auth-label-hint">(optional)</span>
+                    </label>
+                    <div className="auth-input-wrap">
+                      <span className="auth-input-icon"><User size={14} /></span>
+                      <input
+                        className="auth-input"
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="John Doe"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div className="auth-field">
+                  <label className="auth-label">Password</label>
+                  <div className="auth-input-wrap">
+                    <span className="auth-input-icon"><Lock size={14} /></span>
+                    <input
+                      className="auth-input"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      minLength={8}
+                    />
+                  </div>
+                  <div className="auth-input-hint">At least 8 characters</div>
+                </div>
+
+                {/* Confirm password */}
+                <div className="auth-field">
+                  <label className="auth-label">Confirm password</label>
+                  <div className="auth-input-wrap">
+                    <span className="auth-input-icon"><Lock size={14} /></span>
+                    <input
+                      className="auth-input"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                  {/* Live match feedback */}
+                  {pwTyped && (
+                    <div className={`auth-pw-match ${pwMatch ? 'ok' : 'no'}`}>
+                      {pwMatch
+                        ? <><CheckCircle size={11} /> Passwords match</>
+                        : <><AlertCircle size={11} /> Passwords don't match</>
+                      }
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  className="auth-btn"
+                  type="submit"
+                  disabled={isLoading || success}
+                >
+                  {isLoading ? (
+                    <><Loader2 size={15} className="auth-spin" /> Creating account...</>
+                  ) : (
+                    'Create account'
+                  )}
+                </button>
+              </form>
+
+              <div className="auth-divider" />
+
+              <div className="auth-footer">
+                Already have an account?{' '}
+                <Link to="/login">Sign in</Link>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
