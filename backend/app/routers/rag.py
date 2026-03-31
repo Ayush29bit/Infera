@@ -41,7 +41,6 @@ class BatchEvaluateRequest(BaseModel):
 
 @router.post("/query", response_model=QueryResponse)
 async def query_rag(
-    payload: dict,
     request: QueryRequest,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
