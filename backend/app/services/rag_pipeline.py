@@ -55,7 +55,7 @@ def ensure_collection(collection_name: str):
         )
         print(f"Created collection: {collection_name}")
 
-def store_vectors(vectors:List[Dict[str,Any]], collection_name:str):
+def store_vectors(vectors: List[Dict[str, Any]], collection_name: str = "documents"):
     ensure_collection(collection_name)
     points=[
             PointStruct(
@@ -74,6 +74,7 @@ def _dense_search(
     top_k: int,
 ) -> List[Dict[str, Any]]:
     """Return top_k chunks by cosine similarity with their payloads."""
+    ensure_collection(collection_name)
     results = qdrant.query_points(
         collection_name=collection_name,
         query=query_vector,
@@ -100,6 +101,7 @@ def _bm25_search(
       score(D,Q) = Σ IDF(qi) * [ tf(qi,D)*(k1+1) ] / [ tf(qi,D) + k1*(1-b+b*|D|/avgdl) ]
     IDF is approximated from the fetched corpus on the fly.
     """
+    ensure_collection(collection_name)
     query_terms = _tokenise_query(query)
     if not query_terms:
         return []
