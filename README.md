@@ -116,7 +116,7 @@
 
 ## 🏗️ System Architecture
 
-![RAG Architecture](./assets/SCA5.png)
+![RAG Architecture](./assets/INFERA.png)
 
 
 The system is designed as a modular, production-oriented RAG pipeline:
