@@ -6,7 +6,6 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)
 ![React](https://img.shields.io/badge/React-18.0+-61DAFB.svg)
 
-[Features](#-features) • [Demo](#-demo) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
 </div>
 
@@ -50,15 +49,8 @@
 - **Intelligent Chunking**: Context-aware document segmentation
 - **Source Citations**: Traceable answers with document references
 - **Multi-Document QA**: Query across all uploaded documents
-- **Conversation History**: Maintains context across queries
+- **Evaluation Pipeline**: RAGAS framework evaluates retrirval and generation
 
-### 💬 **Intelligent Query Engine**
-- Natural language question answering
-- Follow-up question support
-- Query enhancement and rewriting
-- Confidence scoring
-- Real-time streaming responses
-- Multi-language support (via Groq/OpenAI)
 
 ### 🎨 **Modern User Interface**
 - Clean, minimal design
@@ -104,13 +96,6 @@
 - **HTTP Client**: Fetch API
 - **State Management**: React Hooks (useState, useEffect)
 - **Routing**: React Router (planned)
-
-### **Infrastructure**
-- **Containerization**: Docker + Docker Compose
-- **CI/CD**: GitHub Actions (planned)
-- **Cloud**: AWS / Railway / Vercel
-- **Monitoring**: Sentry (planned)
-- **Logging**: Structured logging
 
 ---
 
