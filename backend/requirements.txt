@@ -38,3 +38,7 @@ ragas
 langchain-groq 
 langchain-community 
 datasets 
+
+# OCR fallback 
+easyocr
+pymupdf
