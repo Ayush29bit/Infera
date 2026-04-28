@@ -52,6 +52,7 @@ def _is_relevant(chunk_text: str, ground_truth_chunks: List[str]) -> bool:
         if gt_lower in chunk_lower or chunk_lower in gt_lower:
             return True
     return False
+
 def compute_recall_at_k(
     retrieved_chunks: List[str],
     ground_truth_chunks: List[str],
@@ -61,12 +62,12 @@ def compute_recall_at_k(
     Recall@K = (# relevant chunks in top-K) / (# total relevant chunks)
  
     Returns scores for K = 1, 3, 5 (or up to len(retrieved_chunks)).
- 
+
     Args:
         retrieved_chunks:    Ordered list of retrieved chunk texts (best first)
         ground_truth_chunks: List of texts that should have been retrieved
         k:                   Maximum K to evaluate up to
- 
+
     Returns:
         {"recall@1": float, "recall@3": float, "recall@k": float}
     """
@@ -82,7 +83,6 @@ def compute_recall_at_k(
         results[f"recall@{ki}"] = round(hits / total_relevant, 4)
  
     return results
- 
  
 def compute_mrr(
     retrieved_chunks: List[str],
@@ -109,13 +109,60 @@ def compute_mrr(
         if _is_relevant(chunk, ground_truth_chunks):
             return round(1.0 / rank, 4)
     return 0.0
+
+def _run_ragas(
+    query: str,
+    answer: str,
+    contexts: List[str],
+    ground_truth: Optional[str],
+) -> Dict[str, Optional[float]]:
+    """Run RAGAS metrics and return score dict."""
+    data: Dict[str, List] = {
+        "question": [query],
+        "answer":   [answer],
+        "contexts": [contexts],
+    }
+    metrics = [Faithfulness, AnswerRelevancy, ContextPrecision]
  
+    if ground_truth:
+        data["ground_truth"] = [ground_truth]
+        metrics.append(ContextRecall)
+ 
+    dataset = Dataset.from_dict(data)
+    result  = evaluate(
+        dataset=dataset,
+        metrics=metrics,
+        llm=_get_ragas_llm(),
+        embeddings=_get_ragas_embeddings(),
+        raise_exceptions=False,
+    )
+ 
+    row = result.to_pandas().iloc[0]
+ 
+    def _safe(col: str) -> Optional[float]:
+        val = row.get(col)
+        if val is None:
+            return None
+        try:
+            f = float(val)
+            return None if f != f else round(f, 4)  # NaN check
+        except (TypeError, ValueError):
+            return None
+ 
+    return {
+        "faithfulness":      _safe("faithfulness"),
+        "answer_relevancy":  _safe("answer_relevancy"),
+        "context_precision": _safe("context_precision"),
+        "context_recall":    _safe("context_recall") if ground_truth else None,
+    }
  
 def evaluate_rag_response(
     query: str,
     answer: str,
     contexts: List[str],
     ground_truth: Optional[str] = None,
+    ground_truth_chunks: Optional[List[str]] = None,
+    k: int = 5,
 ) -> Dict[str, Any]:
     """
     Run RAGAS evaluation on a single RAG response.
@@ -165,20 +212,24 @@ def evaluate_rag_response(
     THRESHOLD = 0.7
     available = [v for v in scores.values() if v is not None]
     passed = all(v >= THRESHOLD for v in available) if available else False
-    summary = _build_summary(scores, passed, THRESHOLD)
+    summary = _build_summary(scores, retrieval_scores, passed, THRESHOLD, k)
  
     return {
         "scores": scores,
+        "retrieval_scores": retrieval_scores,
         "summary": summary,
         "passed": passed,
     }
  
 def _build_summary(
-    scores: Dict[str, Optional[float]],
+    scores: Dict,
+    retrieval: Dict,
     passed: bool,
     threshold: float,
+    k: int,
 ) -> str:
-    lines = ["RAGAS Evaluation Report", "=" * 30]
+    lines = ["RAGAS Evaluation Report", "=" * 34]
+    lines.append("  RAGAS Metrics (LLM-judged):")
     labels = {
         "faithfulness":"Faithfulness(answer grounded in context?)",
         "answer_relevancy":"Answer Relevancy(answer addresses question?)",
@@ -192,8 +243,24 @@ def _build_summary(
         else:
             flag = "✓" if val >= threshold else "✗"
             lines.append(f"  {flag} {label}: {val:.4f}")
+
+    lines.append("  Retrieval Metrics (deterministic):")
+    for ki in [1, 3, k]:
+        val = retrieval.get(f"recall@{ki}")
+        if val is None:
+            lines.append(f"    Recall@{ki}: N/A (no ground_truth_chunks provided)")
+        else:
+            flag = "✓" if val >= threshold else "✗"
+            lines.append(f"    {flag} Recall@{ki}: {val:.4f}")
  
-    lines.append("-" * 30)
+    mrr = retrieval.get("mrr")
+    if mrr is None:
+        lines.append("  MRR: N/A (no ground_truth_chunks provided)")
+    else:
+        flag = "✓" if mrr >= threshold else "✗"
+        lines.append(f"    {flag} MRR: {mrr:.4f}")
+ 
+    lines.append("-" * 34)
     lines.append(f"  Overall: {'PASSED' if passed else 'NEEDS IMPROVEMENT'} (threshold={threshold})")
     return "\n".join(lines)
  
