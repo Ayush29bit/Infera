@@ -165,62 +165,50 @@ def evaluate_rag_response(
     k: int = 5,
 ) -> Dict[str, Any]:
     """
-    Run RAGAS evaluation on a single RAG response.
+    Full evaluation of a single RAG response.
+ 
+    Args:
+        query:               The user's question
+        answer:              The LLM-generated answer
+        contexts:            Retrieved chunk texts passed to the LLM
+        ground_truth:        Reference answer (enables RAGAS context_recall)
+        ground_truth_chunks: Known-relevant chunk texts (enables Recall@K, MRR)
+        k:                   K value for Recall@K (default 5)
+    Returns:
+        {
+          "ragas_scores":      { faithfulness, answer_relevancy, ... },
+          "retrieval_scores":  { recall@1, recall@3, recall@k, mrr },
+          "summary":           str,
+          "passed":            bool,
+        }
     """
-    data: Dict[str, List] = {
-        "question":  [query],
-        "answer":    [answer],
-        "contexts":  [contexts],
-    }
-    metrics = [Faithfulness, AnswerRelevancy, ContextPrecision ]
+    ragas_scores = _run_ragas(query, answer, contexts, ground_truth)
  
-    if ground_truth:
-        data["ground_truth"] = [ground_truth]
-        metrics.append(ContextRecall)
+    # Retrieval scores (deterministic)
+    if ground_truth_chunks:
+        recall_scores = compute_recall_at_k(contexts, ground_truth_chunks, k=k)
+        mrr_score     = compute_mrr(contexts, ground_truth_chunks)
+    else:
+        recall_scores = {f"recall@{ki}": None for ki in [1, 3, k]}
+        mrr_score     = None
  
-    dataset = Dataset.from_dict(data)
+    retrieval_scores = {**recall_scores, "mrr": mrr_score}
  
-    llm = _get_ragas_llm()
-    embeddings = _get_ragas_embeddings()
-    result = evaluate(
-        dataset=dataset,
-        metrics=metrics,
-        llm=llm,
-        embeddings=embeddings,
-        raise_exceptions=False,
-    )
-    result_df = result.to_pandas()
-    row = result_df.iloc[0]
- 
-    def safe(col: str) -> Optional[float]:
-        val = row.get(col)
-        if val is None:
-            return None
-        try:
-            f = float(val)
-            return None if (f != f) else round(f, 4)
-        except (TypeError, ValueError):
-            return None
- 
-    scores = {
-        "faithfulness":safe("faithfulness"),
-        "answer_relevancy":safe("answer_relevancy"),
-        "context_precision":safe("context_precision"),
-        "context_recall":safe("context_recall") if ground_truth else None,
-    }
-
+    # Overall pass/fail at threshold 0.7
     THRESHOLD = 0.7
-    available = [v for v in scores.values() if v is not None]
-    passed = all(v >= THRESHOLD for v in available) if available else False
-    summary = _build_summary(scores, retrieval_scores, passed, THRESHOLD, k)
+    all_scores = list(ragas_scores.values()) + list(retrieval_scores.values())
+    available  = [v for v in all_scores if v is not None]
+    passed     = all(v >= THRESHOLD for v in available) if available else False
+ 
+    summary = _build_summary(ragas_scores, retrieval_scores, passed, THRESHOLD, k)
  
     return {
-        "scores": scores,
+        "ragas_scores":     ragas_scores,
         "retrieval_scores": retrieval_scores,
-        "summary": summary,
-        "passed": passed,
+        "summary":          summary,
+        "passed":           passed,
     }
- 
+
 def _build_summary(
     scores: Dict,
     retrieval: Dict,
