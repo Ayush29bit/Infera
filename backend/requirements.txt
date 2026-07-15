@@ -1,45 +1,38 @@
-# This file lists the Python dependencies for the backend application.
-
-# Backend dependencies
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-sqlalchemy==2.0.23
-
+# Backend
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
 pydantic-settings
 
-# For authentication
-passlib[bcrypt]==1.7.4
-bcrypt==4.0.1
-python-jose[cryptography]==3.3.0
+# Auth
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+python-multipart
+email-validator
 
-# For handling file uploads
-python-multipart==0.0.6
+# Environment
+python-dotenv
 
-# For email validation
-email-validator==2.1.0
+# LLM
+groq
+langchain
+langchain-core
+langchain-community
+langchain-groq
 
-# For llM interaction
-groq==0.4.1
+# Vector DB
+qdrant-client
 
-# For vector database interaction
-qdrant-client==1.7.0
+# Embeddings
+sentence-transformers
+transformers
+huggingface-hub
 
-# For embedding generation
-sentence-transformers==2.2.2
-huggingface-hub<1.0.0
+# Document parsing
+docling
 
-# For document processing
-docling==2.66.0
-
-# For environment variable management
-python-dotenv==1.0.0
-
-# RAG Evaluation dependencies 
-ragas 
-langchain-groq 
-langchain-community 
-datasets 
-
-# OCR fallback 
-easyocr
-pymupdf
+# Evaluation
+ragas
+datasets
