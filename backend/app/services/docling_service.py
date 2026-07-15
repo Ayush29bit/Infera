@@ -18,7 +18,12 @@ Docling is always tried first because it preserves document structure
 EasyOCR is a pure-OCR fallback — it extracts text but loses structure.
 """
 
-from docling.document_converter import DocumentConverter 
+try:
+    from docling.document_converter import DocumentConverter
+except ImportError:  # pragma: no cover - runtime compatibility fallback
+    DocumentConverter = None
+
+
 def _extract_with_docling(file_path: str) -> str:
     """
     Primary extraction using IBM docling.
@@ -26,6 +31,9 @@ def _extract_with_docling(file_path: str) -> str:
     Extract text from any document using Docling.
     """
     logger.info(f"[docling] Processing: {file_path}")
+    if DocumentConverter is None:
+        raise RuntimeError("Docling is not installed in the current environment")
+
     try:
         print(f"Processing with Docling: {file_path}")
         
