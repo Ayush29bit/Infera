@@ -1,13 +1,21 @@
 import uuid
-from sentence_transformers import SentenceTransformer
 from typing import List, Dict, Any
 from app.config import settings 
 import re 
 
 _embedder = None
+
 def get_embedder():
     global _embedder
     if _embedder is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+        except Exception as exc:
+            raise RuntimeError(
+                "Embedding support is unavailable because sentence-transformers could not be imported. "
+                "Install compatible dependencies or run the backend with the provided requirements."
+            ) from exc
+
         _embedder = SentenceTransformer("all-MiniLM-L6-v2")
     return _embedder
 
