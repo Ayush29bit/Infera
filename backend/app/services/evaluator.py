@@ -15,12 +15,20 @@ MRR                : Mean Reciprocal Rank — how high is the first
 import math 
 import logging
 from typing import List, Optional, Dict, Any
-from datasets import Dataset
-from ragas import evaluate 
-from ragas.metrics.collections import Faithfulness, AnswerRelevancy, ContextPrecision, ContextRecall
-from langchain_groq import ChatGroq
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from app.config import settings 
+
+try:
+    from datasets import Dataset
+    from ragas import evaluate
+    from ragas.metrics.collections import Faithfulness, AnswerRelevancy, ContextPrecision, ContextRecall
+    from langchain_groq import ChatGroq
+    from langchain_community.embeddings import HuggingFaceEmbeddings
+except ImportError:  # pragma: no cover - runtime compatibility fallback
+    Dataset = None
+    evaluate = None
+    Faithfulness = AnswerRelevancy = ContextPrecision = ContextRecall = None
+    ChatGroq = None
+    HuggingFaceEmbeddings = None
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +36,8 @@ def _get_ragas_llm()->ChatGroq:
     """
     RAGAS uses LLM as judge internally to judge answers.
     """
+    if ChatGroq is None:
+        raise RuntimeError("langchain-groq is not installed in the current environment")
     return ChatGroq(
     api_key=settings.GROQ_API_KEY,
     model_name="llama-3.3-70b-versatile",
@@ -38,6 +48,8 @@ def _get_ragas_embeddings() -> HuggingFaceEmbeddings:
     """
     RAGAS uses embeddings internally for answer_relevancy scoring.
     """
+    if HuggingFaceEmbeddings is None:
+        raise RuntimeError("langchain-community is not installed in the current environment")
     return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 def _is_relevant(chunk_text: str, ground_truth_chunks: List[str]) -> bool:
@@ -117,6 +129,9 @@ def _run_ragas(
     ground_truth: Optional[str],
 ) -> Dict[str, Optional[float]]:
     """Run RAGAS metrics and return score dict."""
+    if evaluate is None or Dataset is None:
+        raise RuntimeError("ragas and datasets are not installed in the current environment")
+
     data: Dict[str, List] = {
         "question": [query],
         "answer":   [answer],
