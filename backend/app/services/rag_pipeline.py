@@ -14,9 +14,13 @@ from dotenv import load_dotenv
 from app.services.embedder import embed_document, embed_query
 import re 
 from typing import List, Dict, Tuple, Any
-from sentence_transformers import CrossEncoder
 from app.config import settings
 import math 
+
+try:
+    from sentence_transformers import CrossEncoder
+except ImportError:  # pragma: no cover - runtime compatibility fallback
+    CrossEncoder = None
 
 load_dotenv()
 
@@ -32,6 +36,8 @@ _reranker = None
 def get_reranker()->CrossEncoder:
     global _reranker
     if _reranker is None:
+        if CrossEncoder is None:
+            raise RuntimeError("sentence-transformers is not installed in the current environment")
         print("[reranker] Loading cross-encoder model...")
         _reranker=CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
     return _reranker
